@@ -6,11 +6,11 @@ Provisioning times vary based on the operating system and platform. Sampling the
 
 | Platform      | Apply | Destroy |
 |---------------|-------|---------|
-| AWS           | 6 min | 5 min   |
-| Azure         | 7 min | 7 min   |
+| AWS           | 5 min | 3 min   |
+| Azure         | 10 min | 7 min   |
 | Bare-Metal    | 10-15 min | NA  |
 | Digital Ocean | 3 min 30 sec | 20 sec |
-| Google Cloud  | 7 min | 6 min   |
+| Google Cloud  | 8 min | 5 min   |
 
 Notes:
 
@@ -24,22 +24,21 @@ Network performance varies based on the platform and CNI plugin. `iperf` was use
 
 | Platform / Plugin          | Theory | Host to Host | Pod to Pod   |
 |----------------------------|-------:|-------------:|-------------:|
-| AWS (flannel)              | ?      | 976 MB/s     | 900-999 MB/s |
-| AWS (calico, MTU 1480)     | ?      | 976 MB/s     | 100-350 MB/s |
-| AWS (calico, MTU 8981)     | ?      | 976 MB/s     | 900-999 MB/s |
-| Azure (flannel)            | ?      | 749 MB/s     | 680 MB/s     |
-| Bare-Metal (flannel)       | 1 GB/s | ~940 MB/s    | 903 MB/s     | 
-| Bare-Metal (calico)        | 1 GB/s | ~940 MB/s    | 931 MB/s     |
-| Bare-Metal (flannel, bond) | 3 GB/s |  2.3 GB/s    | 1.17 GB/s    | 
-| Bare-Metal (calico, bond)  | 3 GB/s |  2.3 GB/s    | 1.17 GB/s    |
-| Digital Ocean              | ?      | ~940 MB/s     | 820-880 MB/s |
-| Google Cloud (flannel)     | ?      | 1.94 GB/s    | 1.76 GB/s    |
-| Google Cloud (calico)      | ?      | 1.94 GB/s    | 1.81 GB/s    |
+| AWS (flannel)              | 5 Gb/s | 4.94 Gb/s    | 4.89 Gb/s    |
+| AWS (calico, MTU 1480)     | 5 Gb/s | 4.94 Gb/s    | 4.42 Gb/s    |
+| AWS (calico, MTU 8981)     | 5 Gb/s | 4.94 Gb/s    | 4.90 Gb/s    |
+| Azure (flannel)            | Varies |  749 Mb/s    | 650 Mb/s     |
+| Azure (calico)             | Varies |  749 Mb/s    | 650 Mb/s     |
+| Bare-Metal (flannel)       | 1 Gb/s |  940 Mb/s    | 903 Mb/s     |
+| Bare-Metal (calico)        | 1 Gb/s |  940 Mb/s    | 931 Mb/s     |
+| Digital Ocean (flannel)    | Varies | 1.97 Gb/s    | 1.20 Gb/s    |
+| Digital Ocean (calico)     | Varies | 1.97 Gb/s    | 1.20 Gb/s    |
+| Google Cloud (flannel)     | 2 Gb/s | 1.94 Gb/s    | 1.76 Gb/s    |
+| Google Cloud (calico)      | 2 Gb/s | 1.94 Gb/s    | 1.81 Gb/s    |
 
 Notes:
 
 * Calico and Flannel have comparable performance. Platform and configuration differences dominate.
-* AWS and Azure node bandwidth (i.e. upper bound) depends greatly on machine type
+* Azure and DigitalOcean network performance can be quite variable or depend on machine type
 * Only [certain AWS EC2 instance types](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/network_mtu.html#jumbo_frame_instances) allow jumbo frames. This is why the default MTU on AWS must be 1480.
-* Neither CNI provider seems to be able to leverage bonded NICs well (bare-metal)
 

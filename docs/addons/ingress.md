@@ -4,9 +4,9 @@ Nginx Ingress controller pods accept and demultiplex HTTP, HTTPS, TCP, or UDP tr
 
 ## AWS
 
-On AWS, a network load balancer (NLB) distributes traffic across a target group of worker nodes running an Ingress controller deployment. Security group rules allow traffic to ports 80 and 443. Health checks ensure only workers with a healthy Ingress controller receive traffic.
+On AWS, a network load balancer (NLB) distributes TCP traffic across two target groups (port 80 and 443) of worker nodes running an Ingress controller deployment. Security groups rules allow traffic to ports 80 and 443. Health checks ensure only workers with a healthy Ingress controller receive traffic.
 
-Create the Ingress controller deployment, service, RBAC roles, RBAC bindings, default backend, and namespace.
+Create the Ingress controller deployment, service, RBAC roles, RBAC bindings, and namespace.
 
 ```
 kubectl apply -R -f addons/nginx-ingress/aws
@@ -37,9 +37,9 @@ resource "google_dns_record_set" "some-application" {
 
 ## Azure
 
-On Azure, a load balancer distributes traffic across a backend pool of worker nodes running an Ingress controller deployment. Security group rules allow traffic to ports 80 and 443. Health probes ensure only workers with a healthy Ingress controller receive traffic.
+On Azure, a load balancer distributes traffic across a backend address pool of worker nodes running an Ingress controller deployment. Security group rules allow traffic to ports 80 and 443. Health probes ensure only workers with a healthy Ingress controller receive traffic.
 
-Create the Ingress controller deployment, service, RBAC roles, RBAC bindings, default backend, and namespace.
+Create the Ingress controller deployment, service, RBAC roles, RBAC bindings, and namespace.
 
 ```
 kubectl apply -R -f addons/nginx-ingress/azure
@@ -64,7 +64,7 @@ resource "google_dns_record_set" "some-application" {
   name    = "app.example.com."
   type    = "A"
   ttl     = 300
-  rrdatas = ["${module.azure-ramius.ingress_static_ipv4}"]
+  rrdatas = [module.azure-ramius.ingress_static_ipv4]
 }
 ```
 
@@ -74,7 +74,7 @@ On bare-metal, routing traffic to Ingress controller pods can be done in number 
 
 ### Equal-Cost Multi-Path
 
-Create the Ingress controller deployment, service, RBAC roles, RBAC bindings, and default backend. The service should use a fixed ClusterIP (e.g. 10.3.0.12) in the Kubernetes service IPv4 CIDR range.
+Create the Ingress controller deployment, service, RBAC roles, and RBAC bindings. The service should use a fixed ClusterIP (e.g. 10.3.0.12) in the Kubernetes service IPv4 CIDR range.
 
 ```
 kubectl apply -R -f addons/nginx-ingress/bare-metal
@@ -101,9 +101,9 @@ resource "google_dns_record_set" "some-application" {
 
 ## Digital Ocean
 
-On Digital Ocean, a DNS A record (e.g. `nemo-workers.example.com`) resolves to each worker[^1] running an Ingress controller DaemonSet on host ports 80 and 443. Firewall rules allow IPv4 and IPv6 traffic to ports 80 and 443.
+On Digital Ocean, DNS A and AAAA records (e.g. FQDN `nemo-workers.example.com`) resolve to each worker[^1] running an Ingress controller DaemonSet on host ports 80 and 443. Firewall rules allow IPv4 and IPv6 traffic to ports 80 and 443.
 
-Create the Ingress controller daemonset, service, RBAC roles, RBAC bindings, default backend, and namespace.
+Create the Ingress controller daemonset, service, RBAC roles, RBAC bindings, and namespace.
 
 ```
 kubectl apply -R -f addons/nginx-ingress/digital-ocean
@@ -124,19 +124,22 @@ resource "google_dns_record_set" "some-application" {
 }
 ```
 
+!!! note
+    Hosting IPv6 apps is possible, but requires editing the nginx-ingress addon to use `hostNetwork: true`.
+
 [^1]: Digital Ocean does offer load balancers. We've opted not to use them to keep the Digital Ocean setup simple and cheap for developers.
 
 ## Google Cloud
 
-On Google Cloud, a TCP Proxy load balancer distributes traffic across a backend service of worker nodes running an Ingress controller deployment. Firewall rules allow traffic to ports 80 and 443. Health check rules ensure only workers with a healthy Ingress controller receive traffic.
+On Google Cloud, a TCP Proxy load balancer distributes IPv4 and IPv6 TCP traffic across a backend service of worker nodes running an Ingress controller deployment. Firewall rules allow traffic to ports 80 and 443. Health check rules ensure only workers with a healthy Ingress controller receive traffic.
 
-Create the Ingress controller deployment, service, RBAC roles, RBAC bindings, default backend, and namespace.
+Create the Ingress controller deployment, service, RBAC roles, RBAC bindings, and namespace.
 
 ```
 kubectl apply -R -f addons/nginx-ingress/google-cloud
 ```
 
-For each application, add a DNS record resolving to the load balancer's IPv4 address.
+For each application, add DNS A records resolving to the load balancer's IPv4 address and DNS AAAA records resolving to the load balancer's IPv6 address.
 
 ```
 app1.example.com -> 11.22.33.44
@@ -144,10 +147,10 @@ app2.example.com -> 11.22.33.44
 app3.example.com -> 11.22.33.44
 ```
 
-Find the IPv4 address with `gcloud compute addresses list` or use the Typhoon module's output `ingress_static_ipv4`. For example, you might use Terraform to manage a Google Cloud DNS record:
+Find the IPv4 address with `gcloud compute addresses list` or use the Typhoon module's outputs `ingress_static_ipv4` and `ingress_static_ipv6`. For example, you might use Terraform to manage a Google Cloud DNS record:
 
 ```tf
-resource "google_dns_record_set" "some-application" {
+resource "google_dns_record_set" "app-record-a" {
   # DNS zone name
   managed_zone = "example-zone"
 
@@ -155,6 +158,17 @@ resource "google_dns_record_set" "some-application" {
   name    = "app.example.com."
   type    = "A"
   ttl     = 300
-  rrdatas = ["${module.google-cloud-yavin.ingress_static_ipv4}"]
+  rrdatas = [module.google-cloud-yavin.ingress_static_ipv4]
+}
+
+resource "google_dns_record_set" "app-record-aaaa" {
+  # DNS zone name
+  managed_zone = "example-zone"
+
+  # DNS record
+  name    = "app.example.com."
+  type    = "AAAA"
+  ttl     = 300
+  rrdatas = [module.google-cloud-yavin.ingress_static_ipv6]
 }
 ```

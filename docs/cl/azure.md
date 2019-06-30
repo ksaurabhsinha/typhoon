@@ -3,7 +3,7 @@
 !!! danger
     Typhoon for Azure is alpha. For production, use AWS, Google Cloud, or bare-metal. As Azure matures, check [errata](https://github.com/poseidon/typhoon/wiki/Errata) for known shortcomings.
 
-In this tutorial, we'll create a Kubernetes v1.11.3 cluster on Azure with Container Linux.
+In this tutorial, we'll create a Kubernetes v1.15.0 cluster on Azure with Container Linux.
 
 We'll declare a Kubernetes cluster using the Typhoon Terraform module. Then apply the changes to create a resource group, virtual network, subnets, security groups, controller availability set, worker scale set, load balancer, and TLS assets.
 
@@ -13,31 +13,23 @@ Controllers are provisioned to run an `etcd-member` peer and a `kubelet` service
 
 * Azure account
 * Azure DNS Zone (registered Domain Name or delegated subdomain)
-* Terraform v0.11.x and [terraform-provider-ct](https://github.com/coreos/terraform-provider-ct) installed locally
+* Terraform v0.12.x and [terraform-provider-ct](https://github.com/poseidon/terraform-provider-ct) installed locally
 
 ## Terraform Setup
 
-Install [Terraform](https://www.terraform.io/downloads.html) v0.11.x on your system.
+Install [Terraform](https://www.terraform.io/downloads.html) v0.12.x on your system.
 
 ```sh
 $ terraform version
-Terraform v0.11.7
+Terraform v0.12.2
 ```
 
-Add the [terraform-provider-ct](https://github.com/coreos/terraform-provider-ct) plugin binary for your system.
+Add the [terraform-provider-ct](https://github.com/poseidon/terraform-provider-ct) plugin binary for your system to `~/.terraform.d/plugins/`, noting the final name.
 
 ```sh
-wget https://github.com/coreos/terraform-provider-ct/releases/download/v0.2.1/terraform-provider-ct-v0.2.1-linux-amd64.tar.gz
-tar xzf terraform-provider-ct-v0.2.1-linux-amd64.tar.gz
-sudo mv terraform-provider-ct-v0.2.1-linux-amd64/terraform-provider-ct /usr/local/bin/
-```
-
-Add the plugin to your `~/.terraformrc`.
-
-```
-providers {
-  ct = "/usr/local/bin/terraform-provider-ct"
-}
+wget https://github.com/poseidon/terraform-provider-ct/releases/download/v0.3.2/terraform-provider-ct-v0.3.2-linux-amd64.tar.gz
+tar xzf terraform-provider-ct-v0.3.2-linux-amd64.tar.gz
+mv terraform-provider-ct-v0.3.2-linux-amd64/terraform-provider-ct ~/.terraform.d/plugins/terraform-provider-ct_v0.3.2
 ```
 
 Read [concepts](/architecture/concepts/) to learn about Terraform, modules, and organizing resources. Change to your infrastructure repository (e.g. `infra`).
@@ -58,28 +50,11 @@ Configure the Azure provider in a `providers.tf` file.
 
 ```tf
 provider "azurerm" {
-  version = "1.16.0"
-  alias   = "default"
+  version = "1.30.1"
 }
 
-provider "local" {
-  version = "~> 1.0"
-  alias   = "default"
-}
-
-provider "null" {
-  version = "~> 1.0"
-  alias   = "default"
-}
-
-provider "template" {
-  version = "~> 1.0"
-  alias   = "default"
-}
-
-provider "tls" {
-  version = "~> 1.0"
-  alias   = "default"
+provider "ct" {
+  version = "0.3.2"
 }
 ```
 
@@ -91,15 +66,7 @@ Define a Kubernetes cluster using the module `azure/container-linux/kubernetes`.
 
 ```tf
 module "azure-ramius" {
-  source = "git::https://github.com/poseidon/typhoon//azure/container-linux/kubernetes?ref=v1.11.3"
-
-  providers = {
-    azurerm  = "azurerm.default"
-    local    = "local.default"
-    null     = "null.default"
-    template = "template.default"
-    tls      = "tls.default"
-  }
+  source = "git::https://github.com/poseidon/typhoon//azure/container-linux/kubernetes?ref=v1.15.0"
 
   # Azure
   cluster_name   = "ramius"
@@ -112,7 +79,7 @@ module "azure-ramius" {
   asset_dir          = "/home/user/.secrets/clusters/ramius"
 
   # optional
-  worker_count    = 3
+  worker_count    = 2
   host_cidr       = "10.0.0.0/20"
 }
 ```
@@ -159,16 +126,15 @@ In 4-8 minutes, the Kubernetes cluster will be ready.
 
 ## Verify
 
-[Install kubectl](https://coreos.com/kubernetes/docs/latest/configure-kubectl.html) on your system. Use the generated `kubeconfig` credentials to access the Kubernetes cluster and list nodes.
+[Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/) on your system. Use the generated `kubeconfig` credentials to access the Kubernetes cluster and list nodes.
 
 ```
 $ export KUBECONFIG=/home/user/.secrets/clusters/ramius/auth/kubeconfig
 $ kubectl get nodes
 NAME                  STATUS  ROLES              AGE  VERSION
-ramius-controller-0   Ready   controller,master  24m  v1.11.3
-ramius-worker-000001  Ready   node               25m  v1.11.3
-ramius-worker-000002  Ready   node               24m  v1.11.3
-ramius-worker-000005  Ready   node               24m  v1.11.3
+ramius-controller-0   Ready   controller,master  24m  v1.15.0
+ramius-worker-000001  Ready   node               25m  v1.15.0
+ramius-worker-000002  Ready   node               24m  v1.15.0
 ```
 
 List the pods.
@@ -177,17 +143,16 @@ List the pods.
 $ kubectl get pods --all-namespaces
 NAMESPACE     NAME                                        READY  STATUS    RESTARTS  AGE
 kube-system   coredns-7c6fbb4f4b-b6qzx                    1/1    Running   0         26m
+kube-system   coredns-7c6fbb4f4b-j2k3d                    1/1    Running   0         26m
+kube-system   flannel-bwf24                               2/2    Running   2         26m
+kube-system   flannel-ks5qb                               2/2    Running   0         26m
+kube-system   flannel-tq2wg                               2/2    Running   0         26m
 kube-system   kube-apiserver-hxgsx                        1/1    Running   3         26m
 kube-system   kube-controller-manager-5ff9cd7bb6-b942n    1/1    Running   0         26m
 kube-system   kube-controller-manager-5ff9cd7bb6-bbr6w    1/1    Running   0         26m
-kube-system   kube-flannel-bwf24                          2/2    Running   2         26m
-kube-system   kube-flannel-ks5qb                          2/2    Running   0         26m
-kube-system   kube-flannel-nghsx                          2/2    Running   2         26m
-kube-system   kube-flannel-tq2wg                          2/2    Running   0         26m
 kube-system   kube-proxy-j4vpq                            1/1    Running   0         26m
 kube-system   kube-proxy-jxr5d                            1/1    Running   0         26m
 kube-system   kube-proxy-lbdw5                            1/1    Running   0         26m
-kube-system   kube-proxy-v8r7c                            1/1    Running   0         26m
 kube-system   kube-scheduler-5f76d69686-s4fbx             1/1    Running   0         26m
 kube-system   kube-scheduler-5f76d69686-vgdgn             1/1    Running   0         26m
 kube-system   pod-checkpointer-cnqdg                      1/1    Running   0         26m
@@ -255,10 +220,11 @@ Reference the DNS zone with `"${azurerm_dns_zone.clusters.name}"` and its resour
 | controller_type | Machine type for controllers | "Standard_DS1_v2" | See below |
 | worker_type | Machine type for workers | "Standard_F1" | See below |
 | os_image | Channel for a Container Linux derivative | coreos-stable | coreos-stable, coreos-beta, coreos-alpha |
-| disk_size | Size of the disk GB | "40" | "100" |
+| disk_size | Size of the disk in GB | "40" | "100" |
 | worker_priority | Set priority to Low to use reduced cost surplus capacity, with the tradeoff that instances can be deallocated at any time | Regular | Low |
 | controller_clc_snippets | Controller Container Linux Config snippets | [] | [example](/advanced/customization/#usage) |
 | worker_clc_snippets | Worker Container Linux Config snippets | [] | [example](/advanced/customization/#usage) |
+| networking | Choice of networking provider | "flannel" | "flannel" or "calico" (experimental) |
 | host_cidr | CIDR IPv4 range to assign to instances | "10.0.0.0/16" | "10.0.0.0/20" |
 | pod_cidr | CIDR IPv4 range to assign to Kubernetes pods | "10.2.0.0/16" | "10.22.0.0/16" |
 | service_cidr | CIDR IPv4 range to assign to Kubernetes services | "10.3.0.0/16" | "10.3.0.0/24" |
