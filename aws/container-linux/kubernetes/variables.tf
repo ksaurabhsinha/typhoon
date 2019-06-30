@@ -49,7 +49,7 @@ variable "os_image" {
 
 variable "disk_size" {
   type        = string
-  default     = "20"
+  default     = "40"
   description = "Size of the EBS volume in GB"
 }
 
