@@ -16,7 +16,7 @@ resource "aws_route53_record" "apiserver" {
 # Network Load Balancer for apiservers and ingress
 resource "aws_lb" "nlb" {
   name               = "${var.cluster_name}-nlb"
-  load_balancer_type = "network"
+  //load_balancer_type = "network"
   internal           = false
 
   subnets = aws_subnet.public.*.id
