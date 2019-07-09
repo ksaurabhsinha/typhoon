@@ -4,9 +4,21 @@ Notable changes between versions.
 
 ## Latest
 
+* Update Calico from v3.7.3 to [v3.7.4](https://docs.projectcalico.org/v3.7/release-notes/)
+* Run `kube-apiserver` with lower privilege user (nobody) ([#506](https://github.com/poseidon/typhoon/pull/506))
+
+#### Google Cloud
+
+* Allow controller nodes to span more than 3 zones if available in a region ([#504](https://github.com/poseidon/typhoon/pull/504))
+* Eliminate extraneous controller instance groups in single-controller clusters ([#504](https://github.com/poseidon/typhoon/pull/504))
+* Raise network deletion timeout from 4m to 6m ([#505](https://github.com/poseidon/typhoon/pull/505))
+
 #### Addons
 
+* Update Prometheus from v2.10.0 to v2.11.0-rc.0
 * Update Grafana from v6.2.4 to v6.2.5
+* Update nginx-ingress from v0.24.1 to v0.25.0
+  * Support `networking.k8s.io/v1beta1` apiVersion
 
 ## v1.15.0
 
